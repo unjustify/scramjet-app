@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rubik:wght@300;400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    background: #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Rubik', sans-serif;
+  }
+
+  .calculator {
+    background: #2a2a2a;
+    border-radius: 24px;
+    padding: 24px;
+    width: 320px;
+    box-shadow: 0 32px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+  }
+
+  .display {
+    background: #1a1a1a;
+    border-radius: 16px;
+    padding: 20px 24px 16px;
+    margin-bottom: 20px;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .display .expression {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    color: #555;
+    min-height: 18px;
+    word-break: break-all;
+    text-align: right;
+  }
+
+  .display .value {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 42px;
+    color: #f0f0f0;
+    word-break: break-all;
+    text-align: right;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+
+  .display .value.flash {
+    color: #4ade80;
+  }
+
+  .buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  button {
+    border: none;
+    border-radius: 12px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    padding: 18px 0;
+    cursor: pointer;
+    transition: transform 0.08s, filter 0.08s;
+    user-select: none;
+  }
+
+  button:active {
+    transform: scale(0.93);
+    filter: brightness(0.85);
+  }
+
+  .btn-num {
+    background: #3a3a3a;
+    color: #f0f0f0;
+  }
+
+  .btn-op {
+    background: #4a4a4a;
+    color: #f0f0f0;
+  }
+
+  .btn-fn {
+    background: #3d3d3d;
+    color: #aaa;
+    font-size: 15px;
+  }
+
+  .btn-eq {
+    background: #f97316;
+    color: #fff;
+    font-weight: 500;
+  }
+
+  .btn-zero {
+    grid-column: span 2;
+    text-align: left;
+    padding-left: 24px;
+  }
+
+  .btn-clear {
+    background: #ef4444;
+    color: #fff;
+  }
+</style>
+</head>
+<body>
+
+<div class="calculator">
+  <div class="display">
+    <div class="expression" id="expression"></div>
+    <div class="value" id="display">0</div>
+  </div>
+  <div class="buttons">
+    <button class="btn-fn btn-clear" onclick="clearAll()">AC</button>
+    <button class="btn-fn" onclick="toggleSign()">+/−</button>
+    <button class="btn-fn" onclick="percent()">%</button>
+    <button class="btn-op" onclick="setOp('/')">÷</button>
+
+    <button class="btn-num" onclick="input('7')">7</button>
+    <button class="btn-num" onclick="input('8')">8</button>
+    <button class="btn-num" onclick="input('9')">9</button>
+    <button class="btn-op" onclick="setOp('*')">×</button>
+
+    <button class="btn-num" onclick="input('4')">4</button>
+    <button class="btn-num" onclick="input('5')">5</button>
+    <button class="btn-num" onclick="input('6')">6</button>
+    <button class="btn-op" onclick="setOp('-')">−</button>
+
+    <button class="btn-num" onclick="input('1')">1</button>
+    <button class="btn-num" onclick="input('2')">2</button>
+    <button class="btn-num" onclick="input('3')">3</button>
+    <button class="btn-op" onclick="setOp('+')">+</button>
+
+    <button class="btn-num btn-zero" onclick="input('0')">0</button>
+    <button class="btn-num" onclick="inputDot()">.</button>
+    <button class="btn-eq" onclick="equals()">=</button>
+  </div>
+</div>
+
+<script>
+  // ---- Secret code ----
+  const SECRET = '369';
+  const PROXY_URL = 'https://noxy.best'; // change this to your proxy path
+
+  let current = '0';
+  let previous = null;
+  let operator = null;
+  let justEvaled = false;
+  let fullExpr = '';
+
+  const display = document.getElementById('display');
+  const expression = document.getElementById('expression');
+
+  function updateDisplay(val) {
+    // Limit display length
+    let str = String(val);
+    if (str.length > 12) str = parseFloat(val).toExponential(5);
+    display.textContent = str;
+  }
+
+  function input(digit) {
+    if (justEvaled) {
+      current = digit;
+      fullExpr = '';
+      justEvaled = false;
+    } else {
+      if (current === '0') {
+        current = digit;
+      } else {
+        if (current.replace('.', '').replace('-', '').length >= 12) return;
+        current += digit;
+      }
+    }
+    updateDisplay(current);
+  }
+
+  function inputDot() {
+    if (justEvaled) { current = '0.'; justEvaled = false; }
+    if (!current.includes('.')) current += '.';
+    updateDisplay(current);
+  }
+
+  function setOp(op) {
+    if (operator && !justEvaled) calculate();
+    previous = parseFloat(current);
+    operator = op;
+    const opSymbol = { '+': '+', '-': '−', '*': '×', '/': '÷' }[op];
+    fullExpr = current + ' ' + opSymbol + ' ';
+    expression.textContent = fullExpr;
+    justEvaled = true;
+  }
+
+  function calculate() {
+    if (previous === null || operator === null) return null;
+    const a = previous;
+    const b = parseFloat(current);
+    let result;
+    switch (operator) {
+      case '+': result = a + b; break;
+      case '-': result = a - b; break;
+      case '*': result = a * b; break;
+      case '/': result = b === 0 ? 'Error' : a / b; break;
+    }
+    return result;
+  }
+
+  function equals() {
+    // Check secret code
+    if (current === SECRET && previous === null && operator === null) {
+      display.classList.add('flash');
+      setTimeout(() => { window.location.href = PROXY_URL; }, 400);
+      return;
+    }
+
+    const result = calculate();
+    if (result === null) return;
+
+    fullExpr = expression.textContent + current + ' =';
+    expression.textContent = fullExpr;
+
+    const resultStr = String(result);
+    current = resultStr;
+    previous = null;
+    operator = null;
+    justEvaled = true;
+    updateDisplay(result);
+  }
+
+  function clearAll() {
+    current = '0';
+    previous = null;
+    operator = null;
+    justEvaled = false;
+    fullExpr = '';
+    expression.textContent = '';
+    updateDisplay('0');
+  }
+
+  function toggleSign() {
+    current = String(parseFloat(current) * -1);
+    updateDisplay(current);
+  }
+
+  function percent() {
+    current = String(parseFloat(current) / 100);
+    updateDisplay(current);
+  }
+
+  // Keyboard support
+  document.addEventListener('keydown', e => {
+    if (e.key >= '0' && e.key <= '9') input(e.key);
+    else if (e.key === '.') inputDot();
+    else if (e.key === '+') setOp('+');
+    else if (e.key === '-') setOp('-');
+    else if (e.key === '*') setOp('*');
+    else if (e.key === '/') { e.preventDefault(); setOp('/'); }
+    else if (e.key === 'Enter' || e.key === '=') equals();
+    else if (e.key === 'Escape') clearAll();
+    else if (e.key === 'Backspace') {
+      if (current.length > 1) current = current.slice(0, -1);
+      else current = '0';
+      updateDisplay(current);
+    }
+  });
+</script>
+</body>
+</html>
